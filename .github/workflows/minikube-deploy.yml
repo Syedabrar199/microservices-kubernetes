@@ -1,0 +1,40 @@
+name: Deploy Microservices to Minikube
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Minikube
+        uses: medyagh/setup-minikube@v0.0.14
+        with:
+          driver: docker
+
+      - name: Build Docker images inside Minikube
+        run: |
+          eval $(minikube docker-env)
+
+          docker build -t frontend ./src/frontend
+          docker build -t cartservice ./src/cartservice/src
+          docker build -t adservice ./src/adservice
+          docker build -t checkoutservice ./src/checkoutservice
+          docker build -t currencyservice ./src/currencyservice
+          docker build -t emailservice ./src/emailservice
+          docker build -t paymentservice ./src/paymentservice
+          docker build -t productcatalogservice ./src/productcatalogservice
+          docker build -t recommendationservice ./src/recommendationservice
+          docker build -t shippingservice ./src/shippingservice
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f ./release/kubernetes-manifests/
+          kubectl rollout status deployment/frontend
+          kubectl get pods -A
+
